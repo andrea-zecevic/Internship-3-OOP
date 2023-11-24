@@ -1,7 +1,9 @@
 ﻿using PhoneBookApp.Classes;
 using PhoneBookApp.Enums;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace PhoneDirectory
 {
@@ -15,7 +17,7 @@ namespace PhoneDirectory
         {
 
             Call call1 = new Call(DateTime.Now.AddHours(-2), CallStatus.Completed);
-            Call call2 = new Call(DateTime.Now.AddHours(-9), CallStatus.Completed);
+            Call call2 = new Call(DateTime.Now.AddDays(-9), CallStatus.Completed);
             Call call3 = new Call(DateTime.Now.AddHours(-4), CallStatus.Missed);
 
             Contact contact1 = new Contact("Iva Ivic", 09878777, ContactPreference.Favorite);
@@ -24,15 +26,15 @@ namespace PhoneDirectory
 
             PhoneDirectoryManager.PhoneDirectory[contact1] = new List<Call> { call1, call2 };
             PhoneDirectoryManager.PhoneDirectory[contact2] = new List<Call> { call2 };
-            PhoneDirectoryManager.PhoneDirectory[contact3] = new List<Call> { call3, call2};
+            PhoneDirectoryManager.PhoneDirectory[contact3] = new List<Call> { call3, call2 };
 
             var exit = true;
             while (exit)
             {
 
-                Console.WriteLine("\n\tTelefonski imenik\n\nUnesi broj za odabir:\n1 - Ispis svih kontakata\n" +
+                Console.WriteLine("\n\tTelefonski imenik\n\nUnesi broj za odabir:\n\n1 - Ispis svih kontakata\n" +
                     "2 - Dodavanje novih kontakata u imenik\n3 - Brisanje korisnika iz imenika\n" +
-                    "4 - Editiranje preference kontakta\n5 - Upravljanje kontaktom i poddomena\n" +
+                    "4 - Editiranje preference kontakta\n5 - Upravljanje kontaktom i podmenu\n" +
                     "6 - Ispis svih poziva\n7 - Izlaz iz aplikacije ");
 
                 var input = Console.ReadLine();
@@ -54,20 +56,22 @@ namespace PhoneDirectory
                             EditContactPreference();
                             break;
                         case 5:
-                            //MenageContact()
+                            ManageContact();
                             break;
                         case 6:
-                            //DisplayCalls()
+                            DisplayCalls();
                             break;
                         case 7:
                             Console.WriteLine("Lijep pozdrav");
                             exit = false;
                             break;
-                        default:
-                            Console.WriteLine("Pogresan unos. Molim pokusajte ponovno");
+                        default:                     
+                            Console.WriteLine("Pogresan unos. Molim pokusajte ponovno");                       
                             break;
                     }
-                } else {
+                }
+                else
+                {
                     Console.WriteLine("Pogresan unos. Molim pokusajte ponovno");
                 }
             }
@@ -99,9 +103,10 @@ namespace PhoneDirectory
                     if (long.TryParse(Console.ReadLine(), out long phoneNumber) && phoneNumber.ToString().Length > 6)
                     {
                         Console.WriteLine("Unesite preferencu za kontakt (0 - Favorite, 1 - Normal, 2 - Blocked):");
-                        if (Enum.TryParse(Console.ReadLine(), out ContactPreference preferenca) && preferenca < ContactPreference.Blocked)
+                        if (Enum.TryParse(Console.ReadLine(), out ContactPreference preferenca) && preferenca >= 0 && preferenca <= ContactPreference.Blocked)
                         {
                             Contact newContact = new Contact(firstAndLastName, phoneNumber, preferenca);
+
 
                             if (!PhoneDirectoryManager.PhoneDirectory.ContainsKey(newContact))
                             {
@@ -129,7 +134,7 @@ namespace PhoneDirectory
                 }
             }
 
-            static bool IsValidName(string name) 
+            static bool IsValidName(string name)
             {
                 return !string.IsNullOrWhiteSpace(name) && name.Length >= 3 && name.All(c => char.IsLetter(c) || char.IsWhiteSpace(c));
             }
@@ -141,21 +146,26 @@ namespace PhoneDirectory
 
                 if (!string.IsNullOrWhiteSpace(contactNameToDelete))
                 {
-                    var contactToDelete = PhoneDirectoryManager.PhoneDirectory.Keys.FirstOrDefault(contact => contact.FirstAndLastName == contactNameToDelete);
-                    
-                    if (contactToDelete != null)
-                    {
-                        PhoneDirectoryManager.PhoneDirectory.Remove(contactToDelete);
-                        Console.WriteLine($"\nKontakt {contactToDelete.FirstAndLastName} ste uspjesno izbrisali iz imenika.");
-                    } 
-                    else
-                    {
-                        Console.WriteLine("Uneseni kontakt ne postoji u imeniku.");
-                    }               
-                } 
+                    RemoveContactFromTheDirectory(contactNameToDelete);                 
+                }
                 else
                 {
                     Console.WriteLine("Uneseno ime nije ispravno.");
+                }
+            }
+
+            static void RemoveContactFromTheDirectory(string contactNameToDelete)
+            {
+                var contactToDelete = PhoneDirectoryManager.PhoneDirectory.Keys.FirstOrDefault(contact => contact.FirstAndLastName == contactNameToDelete);
+
+                if (contactToDelete != null)
+                {
+                    PhoneDirectoryManager.PhoneDirectory.Remove(contactToDelete);
+                    Console.WriteLine($"\nKontakt {contactToDelete.FirstAndLastName} ste uspjesno izbrisali iz imenika.");
+                }
+                else
+                {
+                    Console.WriteLine("Uneseni kontakt ne postoji u imeniku.");
                 }
             }
 
@@ -166,9 +176,7 @@ namespace PhoneDirectory
 
                 if (!string.IsNullOrWhiteSpace(contactToEditPreference))
                 {
-
-                    checkIfContactExistsAndChangeItsPreference(contactToEditPreference);
-                   
+                    CheckIfContactExistsAndChangeItsPreference(contactToEditPreference);
                 }
                 else
                 {
@@ -176,7 +184,7 @@ namespace PhoneDirectory
                 }
             }
 
-            static void checkIfContactExistsAndChangeItsPreference(string userInput)
+            static void CheckIfContactExistsAndChangeItsPreference(string userInput)
             {
                 var contactToEdit = PhoneDirectoryManager.PhoneDirectory.Keys.FirstOrDefault(contact => contact.FirstAndLastName == userInput);
 
@@ -194,7 +202,7 @@ namespace PhoneDirectory
                     else
                     {
                         Console.WriteLine("Neispravan unos preference.");
-                    }                   
+                    }
                 }
                 else
                 {
@@ -202,8 +210,122 @@ namespace PhoneDirectory
                 }
             }
 
+            static void ManageContact()
+            {
+                Console.WriteLine("Unesite kontakt cijim pozivima zelite upravljati.");
+                var contactToManage = Console.ReadLine();
+
+                if (!string.IsNullOrWhiteSpace(contactToManage))
+                {
+                    Submenu(contactToManage);
+                }
+                else
+                {
+                    Console.WriteLine("Uneseno ime nije ispravno.");
+                }
+            }
+
+            static void Submenu(string contactToManage)
+            {
+                var exit = true;
+                while (exit)
+                {
+                    Console.WriteLine("\nUnesite zeljenu akciju:\n\n1 - Ispis svih poziva\n2 - Kreiranje novog poziva\n3 - Izlaz");
+                    var action = Console.ReadLine();
+
+                    if (int.TryParse(action, out int choice) && choice >= 1 && choice <= 3)
+                    {
+                        switch (choice)
+                        {
+                            case 1:
+                                PrintCalls(contactToManage);
+                                break;
+                            case 2:
+                                CreateNewCall(contactToManage);
+                                break;
+                            case 3:
+                                exit = false;
+                                break;
+                            default:
+                                Console.WriteLine("Pogresan unos. Molim pokusajte ponovno.");
+                                break;
+                        }
+
+                    }
+                }
+            }
+        
+            static void PrintCalls(string contactToManage)
+            {
+                var contactCalls = PhoneDirectoryManager.PhoneDirectory.Keys.FirstOrDefault(contact => contact.FirstAndLastName == contactToManage);
 
 
+                if (contactCalls != null && PhoneDirectoryManager.PhoneDirectory.TryGetValue(contactCalls, out var calls))
+                {
+                    var sortedCalls = calls.OrderByDescending(contact => contact.CallTime).ToList();
+
+                    foreach (var call in sortedCalls)
+                    {
+                        Console.WriteLine($"Vrijeme poziva: {call.CallTime}, Status: {call.Status}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Taj kontakt ne postoji u imeniku.");
+                }
+            }
+
+            static void CreateNewCall(string contactToManage)
+            {
+                var contact = PhoneDirectoryManager.PhoneDirectory.Keys.FirstOrDefault
+                    (contact => contact.FirstAndLastName == contactToManage);
+
+                if (contact != null && PhoneDirectoryManager.PhoneDirectory.TryGetValue(contact, out var calls))
+                {
+                    if (contact.Preference == ContactPreference.Blocked)
+                    {
+                        Console.WriteLine("Kontakt je blokiran i s njim nije moguce uspostaviti kontakt.");
+                        return;
+                    }
+
+                    var randomDuration = new Random().Next(1, 21);
+
+                    SimulateCall(calls, randomDuration);
+                }
+                else
+                {
+                    Console.WriteLine("Taj kontakt ne postoji u imeniku.");
+                }
+            }
+
+            static void SimulateCall(List<Call> calls, int randomDuration)
+            {
+                var random = new Random();
+                var randomStatus = (CallStatus)random.Next(0, 3);
+
+                var newCall = new Call(DateTime.Now, CallStatus.InProgress);
+                calls.Add(newCall);
+
+                Console.WriteLine($"Poziv je uspostavljen. Trajanje poziva: {randomDuration} sekundi, Status odgovora: {randomStatus}");
+                System.Threading.Thread.Sleep(randomDuration * 1000);
+
+                newCall.Status = CallStatus.Completed;
+                Console.WriteLine("Poziv je zavrsen.");
+            }
+
+            static void DisplayCalls()
+            {
+                Console.WriteLine("Popis svih poziva:");
+                foreach (var contact in PhoneDirectoryManager.PhoneDirectory.Keys)
+                {
+                    var sortedCalls = PhoneDirectoryManager.PhoneDirectory[contact].OrderBy(call => call.CallTime).ToList();
+
+                    foreach (var call in sortedCalls)
+                    {
+                        Console.WriteLine($"Vrijeme poziva: {call.CallTime}, Status: {call.Status}");
+                    }
+                }
+            }
 
 
         }
